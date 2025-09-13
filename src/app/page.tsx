@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AnalysisResult {
   type: string;
@@ -8,14 +8,126 @@ interface AnalysisResult {
   error?: string;
 }
 
+interface SynthesisResult {
+  synthesis: string;
+}
+
+interface DischargeOrder {
+  patientName: string;
+  medicalRecordNumber: string;
+  dateOfBirth: string;
+  dischargeDate: string;
+  admissionDate: string;
+  primaryDiagnosis: string;
+  secondaryDiagnoses: string[];
+  medications: Array<{
+    name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    instructions: string;
+  }>;
+  followUpInstructions: string[];
+  activityRestrictions: string;
+  dietInstructions: string;
+  warningSignsToReturn: string[];
+  dischargingPhysician: string;
+  dischargeDisposition: string;
+  vitalSignsAtDischarge: {
+    bloodPressure: string;
+    heartRate: string;
+    temperature: string;
+    oxygenSaturation: string;
+    respiratoryRate: string;
+  };
+  functionalStatus: string;
+  dischargeInstructions: {
+    woundCare: string | null;
+    equipmentNeeded: string[];
+    emergencyContacts: string[];
+    transportationArrangements: string;
+  };
+}
+
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [uploadRows, setUploadRows] = useState<{file: File | null, type: string}[]>([{ file: null, type: "Insurance" }]);
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [synthesizing, setSynthesizing] = useState(false);
+  const [synthesisResult, setSynthesisResult] = useState<SynthesisResult | null>(null);
+  const [generatingOrder, setGeneratingOrder] = useState(false);
+  const [dischargeOrder, setDischargeOrder] = useState<DischargeOrder | null>(null);
   
   const docTypes = ["Insurance", "Progress Notes", "DME orders", "Nurse rounding", "Medical reports"];
+
+  // Trigger synthesis when all results are complete
+  useEffect(() => {
+    const allComplete = results.length > 0 && results.every(r => !r.loading && !r.error && r.analysis);
+    if (allComplete && !synthesizing && !synthesisResult) {
+      handleSynthesis();
+    }
+  }, [results, synthesizing, synthesisResult]);
+
+  const handleSynthesis = async () => {
+    setSynthesizing(true);
+    
+    try {
+      const response = await fetch('/api/synthesizer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analyses: results }),
+      });
+      
+      const result = await response.json();
+      setSynthesisResult(result);
+    } catch (error) {
+      console.error('Synthesis failed:', error);
+    } finally {
+      setSynthesizing(false);
+    }
+  };
+
+  const handleCreateDischargeOrder = async () => {
+    setGeneratingOrder(true);
+    
+    try {
+      const response = await fetch('/api/discharge-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analyses: results }),
+      });
+      
+      const result = await response.json();
+      setDischargeOrder(result.dischargeOrder);
+    } catch (error) {
+      console.error('Discharge order generation failed:', error);
+    } finally {
+      setGeneratingOrder(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const element = document.getElementById('discharge-order');
+    
+    const opt = {
+      margin: 0.5,
+      filename: `discharge-order-${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    // @ts-ignore
+    html2pdf().set(opt).from(element).save();
+  };
 
   const handleUpload = async () => {
     const validRows = uploadRows.filter(row => row.file);
@@ -165,11 +277,17 @@ export default function Home() {
       {showResults && (
         <div className="w-full max-w-6xl space-y-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-light text-gray-800">Analysis Pending...</h2>
+            <h2 className="text-2xl font-light text-gray-800">
+              {synthesizing ? "Synthesizing Case..." : synthesisResult ? "Discharge Assessment" : "Analysis Pending..."}
+            </h2>
             <button
               onClick={() => {
                 setShowResults(false);
                 setResults([]);
+                setSynthesisResult(null);
+                setSynthesizing(false);
+                setDischargeOrder(null);
+                setGeneratingOrder(false);
               }}
               className="bg-gray-500/80 text-white px-4 py-2 rounded-xl hover:bg-gray-600/80 transition-all duration-200 font-medium"
             >
@@ -177,7 +295,7 @@ export default function Home() {
             </button>
           </div>
           {results.map((result, i) => (
-            <div key={i} className="bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64">
+            <div key={i} className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-medium text-gray-800">{result.type}</h3>
                 {result.loading && (
@@ -200,6 +318,171 @@ export default function Home() {
               </div>
             </div>
           ))}
+
+          {synthesisResult && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-blue-800">Discharge Recommendation</h3>
+                <button
+                  onClick={handleCreateDischargeOrder}
+                  disabled={generatingOrder}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
+                >
+                  {generatingOrder ? "Generating..." : "Create Discharge Order"}
+                </button>
+              </div>
+              <p className="text-blue-700 leading-relaxed">{synthesisResult.synthesis}</p>
+            </div>
+          )}
+
+          {dischargeOrder && (
+            <>
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={handleDownloadPDF}
+                  className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-all duration-200 font-medium"
+                >
+                  Download PDF
+                </button>
+              </div>
+              <div id="discharge-order" className="bg-white border border-black rounded-lg p-8 font-mono text-sm shadow-lg">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-black mb-2">HOSPITAL DISCHARGE ORDER</h2>
+                  <div className="w-full h-1 bg-black"></div>
+                </div>
+              
+              {/* Patient Information */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-gray-100 p-4 rounded border border-black">
+                <div>
+                  <p><strong>Patient Name:</strong> {dischargeOrder.patientName}</p>
+                  <p><strong>MRN:</strong> {dischargeOrder.medicalRecordNumber}</p>
+                </div>
+                <div>
+                  <p><strong>DOB:</strong> {dischargeOrder.dateOfBirth}</p>
+                  <p><strong>Admission Date:</strong> {dischargeOrder.admissionDate}</p>
+                </div>
+                <div>
+                  <p><strong>Discharge Date:</strong> {dischargeOrder.dischargeDate}</p>
+                  <p><strong>Disposition:</strong> {dischargeOrder.dischargeDisposition}</p>
+                </div>
+              </div>
+
+              {/* Diagnoses */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">PRIMARY DIAGNOSIS:</h4>
+                <p className="bg-gray-100 p-2 rounded border-l-4 border-black">{dischargeOrder.primaryDiagnosis}</p>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">SECONDARY DIAGNOSES:</h4>
+                <ul className="list-decimal list-inside space-y-1 bg-gray-100 p-3 rounded border border-black">
+                  {dischargeOrder.secondaryDiagnoses.map((diag, i) => <li key={i}>{diag}</li>)}
+                </ul>
+              </div>
+
+              {/* Vital Signs */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">VITAL SIGNS AT DISCHARGE:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-100 p-3 rounded border border-black">
+                  <p><strong>BP:</strong> {dischargeOrder.vitalSignsAtDischarge.bloodPressure}</p>
+                  <p><strong>HR:</strong> {dischargeOrder.vitalSignsAtDischarge.heartRate}</p>
+                  <p><strong>Temp:</strong> {dischargeOrder.vitalSignsAtDischarge.temperature}</p>
+                  <p><strong>O2 Sat:</strong> {dischargeOrder.vitalSignsAtDischarge.oxygenSaturation}</p>
+                  <p><strong>RR:</strong> {dischargeOrder.vitalSignsAtDischarge.respiratoryRate}</p>
+                </div>
+              </div>
+
+              {/* Medications */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">DISCHARGE MEDICATIONS:</h4>
+                <div className="space-y-3 bg-gray-100 p-3 rounded border border-black">
+                  {dischargeOrder.medications.map((med, i) => (
+                    <div key={i} className="border-b border-gray-400 pb-2 last:border-b-0">
+                      <p><strong>{med.name}</strong> - {med.dosage}</p>
+                      <p className="text-xs text-gray-700">Frequency: {med.frequency} | Duration: {med.duration}</p>
+                      <p className="text-xs text-gray-700">Instructions: {med.instructions}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Activity & Diet */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h4 className="font-bold mb-2 text-black">ACTIVITY RESTRICTIONS:</h4>
+                  <p className="bg-gray-100 p-3 rounded border-l-4 border-black">{dischargeOrder.activityRestrictions}</p>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2 text-black">DIET INSTRUCTIONS:</h4>
+                  <p className="bg-gray-100 p-3 rounded border-l-4 border-black">{dischargeOrder.dietInstructions}</p>
+                </div>
+              </div>
+
+              {/* Functional Status */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">FUNCTIONAL STATUS:</h4>
+                <p className="bg-gray-100 p-3 rounded border-l-4 border-black">{dischargeOrder.functionalStatus}</p>
+              </div>
+
+              {/* Follow-up */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">FOLLOW-UP INSTRUCTIONS:</h4>
+                <ul className="list-disc list-inside space-y-1 bg-gray-100 p-3 rounded border border-black">
+                  {dischargeOrder.followUpInstructions.map((instruction, i) => <li key={i}>{instruction}</li>)}
+                </ul>
+              </div>
+
+              {/* Warning Signs */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">RETURN TO HOSPITAL IF:</h4>
+                <ul className="list-disc list-inside space-y-1 bg-gray-100 p-3 rounded border-l-4 border-black">
+                  {dischargeOrder.warningSignsToReturn.map((sign, i) => <li key={i} className="text-black font-semibold">{sign}</li>)}
+                </ul>
+              </div>
+
+              {/* Discharge Instructions */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-2 text-black">ADDITIONAL DISCHARGE INSTRUCTIONS:</h4>
+                <div className="bg-gray-100 p-4 rounded border border-black space-y-3">
+                  {dischargeOrder.dischargeInstructions.woundCare && (
+                    <div>
+                      <p><strong>Wound Care:</strong> {dischargeOrder.dischargeInstructions.woundCare}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p><strong>Equipment Needed:</strong></p>
+                    <ul className="list-disc list-inside ml-4">
+                      {dischargeOrder.dischargeInstructions.equipmentNeeded.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p><strong>Emergency Contacts:</strong></p>
+                    <ul className="list-disc list-inside ml-4">
+                      {dischargeOrder.dischargeInstructions.emergencyContacts.map((contact, i) => <li key={i}>{contact}</li>)}
+                    </ul>
+                  </div>
+                  <p><strong>Transportation:</strong> {dischargeOrder.dischargeInstructions.transportationArrangements}</p>
+                </div>
+              </div>
+
+              {/* Physician Signature */}
+              <div className="mt-8 pt-6 border-t-2 border-black">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p><strong>Discharging Physician:</strong></p>
+                    <div className="w-64 h-0.5 bg-black mt-8"></div>
+                    <p className="text-xs text-gray-700 mt-1">Physician Signature</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-700">
+                      Document generated: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
