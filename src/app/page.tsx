@@ -229,7 +229,7 @@ export default function Home() {
 
   // Prevent hydration mismatch by not rendering until client is ready
   if (!isClient) {
-    return null;
+    return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900" />;
   }
 
   return (
@@ -259,7 +259,7 @@ export default function Home() {
               animate={{ opacity: 1, y: -30 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <span className="text-white">InfiniCare </span>
+              <span className="text-white">infinicare </span>
             </motion.h1>
             <motion.h1
               className="text-4xl sm:text-6xl tracking-normal text-center mb-12 text-white drop-shadow-lg dm-serif-text-regular-italic"
