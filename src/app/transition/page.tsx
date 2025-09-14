@@ -62,7 +62,8 @@ export default function Home() {
   const [synthesisResult, setSynthesisResult] = useState<SynthesisResult | null>(null);
   const [generatingOrder, setGeneratingOrder] = useState(false);
   const [dischargeOrder, setDischargeOrder] = useState<DischargeOrder | null>(null);
-  
+  const [shouldShake, setShouldShake] = useState(false);
+
   const docTypes = ["Insurance", "Progress Notes", "DME orders", "Nurse rounding", "Medical reports"];
 
   // Trigger synthesis when all results are complete
@@ -134,8 +135,12 @@ export default function Home() {
 
   const handleUpload = async () => {
     const validRows = uploadRows.filter(row => row.file);
-    
-    if (validRows.length === 0) return;
+
+    if (validRows.length === 0) {
+      setShouldShake(true);
+      setTimeout(() => setShouldShake(false), 600);
+      return;
+    }
     
     const newFiles = validRows.map(row => row.file!);
     setFiles([...files, ...newFiles]);
@@ -217,6 +222,7 @@ export default function Home() {
         </>
       )}
 
+      {!showResults && (
         <motion.div
           className="w-full max-w-2xl"
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -236,7 +242,16 @@ export default function Home() {
               <div className="space-y-4 mb-6">
                 {uploadRows.map((row, i) => (
                   <div key={i} className="flex gap-3">
-                    <div className="flex-1 relative">
+                    <motion.div
+                      className="flex-1 relative"
+                      animate={{
+                        x: shouldShake && !row.file ? [-3, 3, -3, 3, 0] : 0
+                      }}
+                      transition={{
+                        duration: 0.4,
+                        ease: "easeOut"
+                      }}
+                    >
                       <input 
                         id={`file-${i}`}
                         type="file" 
@@ -250,11 +265,12 @@ export default function Home() {
                       />
                       <label
                         htmlFor={`file-${i}`}
-                        className="block rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer transition-colors text-black border border-gray-400/60" style={{backgroundColor: '#d5dfed'}} onMouseEnter={(e) => e.target.style.backgroundColor = '#b4becf'} onMouseLeave={(e) => e.target.style.backgroundColor = '#d5dfed'}
+                        className="block rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer transition-colors text-black border border-gray-400/60 hover:bg-[#b4becf]"
+                        style={{backgroundColor: '#d5dfed'}}
                       >
                         {row.file ? row.file.name : "Choose file"}
                       </label>
-                    </div>
+                    </motion.div>
                     <select
                       value={row.type}
                       onChange={(e) => {
@@ -262,7 +278,8 @@ export default function Home() {
                         newRows[i].type = e.target.value;
                         setUploadRows(newRows);
                       }}
-                      className="rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px] text-black border border-gray-400/60" style={{backgroundColor: '#d5dfed'}} onMouseEnter={(e) => e.target.style.backgroundColor = '#b4becf'} onMouseLeave={(e) => e.target.style.backgroundColor = '#d5dfed'}
+                      className="rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px] text-black border border-gray-400/60 hover:bg-[#b4becf]"
+                      style={{backgroundColor: '#d5dfed'}}
                     >
                       {docTypes.map(type => (
                         <option key={type} value={type}>{type}</option>
@@ -297,16 +314,24 @@ export default function Home() {
             </div>
           </div>
         </motion.div>
+      )}
 
       <AnimatePresence>
         {showResults && (
           <motion.div
-            className="w-full max-w-6xl space-y-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.6 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
           >
+            <motion.div
+              className="w-full max-w-6xl space-y-6 max-h-[90vh] overflow-y-auto"
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -30, scale: 0.95 }}
+              transition={{ duration: 0.6 }}
+            >
             <motion.div
               className="flex justify-between items-center mb-6"
               initial={{ opacity: 0, x: -20 }}
@@ -341,7 +366,7 @@ export default function Home() {
               </motion.button>
             </motion.div>
           {results.map((result, i) => (
-            <div key={i} className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}>
+            <div key={i} className={`${result.type === 'Insurance' ? 'bg-white' : 'bg-white/60'} backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-medium text-black">{result.type}</h3>
                 {result.loading && (
@@ -529,6 +554,7 @@ export default function Home() {
               </div>
             </>
           )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

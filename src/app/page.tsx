@@ -199,6 +199,11 @@ export default function Home() {
   };
 
 
+  // Prevent hydration mismatch by not rendering until client is ready
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <>
       {!showResults && <ParticleBackground />}
