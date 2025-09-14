@@ -133,6 +133,19 @@ export default function Home() {
     }
   }, [results, reasoning, reasoningResult, synthesizing, synthesisResult]);
 
+  // Auto-scroll to discharge order when it becomes available
+  useEffect(() => {
+    if (dischargeOrder) {
+      const dischargeOrderElement = document.getElementById('discharge-order');
+      if (dischargeOrderElement) {
+        dischargeOrderElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    }
+  }, [dischargeOrder]);
+
   const handleReasoning = async () => {
     setReasoning(true);
     
@@ -176,14 +189,14 @@ export default function Home() {
 
   const handleCreateDischargeOrder = async () => {
     setGeneratingOrder(true);
-    
+
     try {
       const response = await fetch('/api/discharge-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analyses: results }),
       });
-      
+
       const result = await response.json();
       setDischargeOrder(result.dischargeOrder);
     } catch (error) {
@@ -547,7 +560,7 @@ export default function Home() {
           )}
 
           {results.map((result, i) => (
-            <div key={i} className={`${result.type === 'Insurance' ? 'bg-white' : 'bg-white/60'} backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${reasoning || synthesizing ? 'animate-pulse' : ''}`}>
+            <div key={i} className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${reasoning || synthesizing ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-medium text-black">{result.type}</h3>
                 {result.loading && (
