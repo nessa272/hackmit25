@@ -9,6 +9,10 @@ interface AnalysisResult {
   error?: string;
 }
 
+interface ReasoningResult {
+  reasoning: string;
+}
+
 interface SynthesisResult {
   synthesis: string;
 }
@@ -56,6 +60,8 @@ export default function Home() {
   const [uploadRows, setUploadRows] = useState<{file: File | null, type: string}[]>([{ file: null, type: "Insurance" }]);
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [reasoning, setReasoning] = useState(false);
+  const [reasoningResult, setReasoningResult] = useState<ReasoningResult | null>(null);
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesisResult, setSynthesisResult] = useState<SynthesisResult | null>(null);
   const [generatingOrder, setGeneratingOrder] = useState(false);
@@ -63,13 +69,35 @@ export default function Home() {
   
   const docTypes = ["Insurance", "Progress Notes", "DME orders", "Nurse rounding", "Medical reports"];
 
-  // Trigger synthesis when all results are complete
+  // Trigger reasoning when all results are complete, then synthesis
   useEffect(() => {
     const allComplete = results.length > 0 && results.every(r => !r.loading && !r.error && r.analysis);
-    if (allComplete && !synthesizing && !synthesisResult) {
+    if (allComplete && !reasoning && !reasoningResult) {
+      handleReasoning();
+    }
+    if (reasoningResult && !synthesizing && !synthesisResult) {
       handleSynthesis();
     }
-  }, [results, synthesizing, synthesisResult]);
+  }, [results, reasoning, reasoningResult, synthesizing, synthesisResult]);
+
+  const handleReasoning = async () => {
+    setReasoning(true);
+    
+    try {
+      const response = await fetch('/api/patient-reasoning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analyses: results }),
+      });
+      
+      const result = await response.json();
+      setReasoningResult(result);
+    } catch (error) {
+      console.error('Reasoning failed:', error);
+    } finally {
+      setReasoning(false);
+    }
+  };
 
   const handleSynthesis = async () => {
     setSynthesizing(true);
@@ -289,12 +317,14 @@ export default function Home() {
         <div className="w-full max-w-6xl space-y-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-light text-gray-800">
-              {synthesizing ? "Synthesizing Case..." : synthesisResult ? "Discharge Assessment" : "Analysis Pending..."}
+              {reasoning ? "Reasoning patient stay..." : reasoningResult && synthesizing ? "Synthesizing Case..." : synthesisResult ? "Discharge Assessment" : reasoningResult ? "Analysis Complete" : "Analysis Pending..."}
             </h2>
             <button
               onClick={() => {
                 setShowResults(false);
                 setResults([]);
+                setReasoningResult(null);
+                setReasoning(false);
                 setSynthesisResult(null);
                 setSynthesizing(false);
                 setDischargeOrder(null);
@@ -306,7 +336,7 @@ export default function Home() {
             </button>
           </div>
           {results.map((result, i) => (
-            <div key={i} className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}>
+            <div key={i} className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${reasoning || synthesizing ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-medium text-gray-800">{result.type}</h3>
                 {result.loading && (
@@ -329,6 +359,18 @@ export default function Home() {
               </div>
             </div>
           ))}
+
+          {reasoningResult && (
+            <div className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-medium text-gray-800">Patient Stay Reasoning</h3>
+              </div>
+              
+              <div className="h-44 overflow-y-auto">
+                <p className="text-gray-700 leading-relaxed">{reasoningResult.reasoning}</p>
+              </div>
+            </div>
+          )}
 
           {synthesisResult && (
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mt-6">
