@@ -29,19 +29,22 @@ export async function POST(req: NextRequest) {
         },
         {
           role: "user",
-          content: `Provide a BRIEF discharge assessment (under 300 words total):
+          content: `Provide a BRIEF discharge assessment that details whether or not the patient is ready to be discharged and why. Please keep this response under 400 words.
 
-CLINICAL REASONING (${reasoningSource}):
-${reasoningText}
+                    CLINICAL REASONING (${reasoningSource}):
+                    ${reasoningText}
 
-MEDICAL DOCUMENT ANALYSES:
-${analysesText}
+                    MEDICAL DOCUMENT ANALYSES:
+                    ${analysesText}
 
-Format as:
-• Discharge Readiness: (max 2 bullets, 1 sentence each)
-• Key Risks: (max 2 bullets, 1 sentence each)  
-• Risk Level: (1 word only)
-• Recommendation: (1 sentence only)`
+                    When assessing discharge readiness, consider the clinical reasoning and take the recommendation into account by calculating the amount of time the patient has ALREADY stayed in the hospital (based on the analyses), and thinking about the recommendation.
+
+                    Format as:
+                    • Discharge Readiness: (max 2 bullets, 1 sentence each)
+                    • Key Risks: (max 2 bullets, 1 sentence each)  
+                    • Risk Level: (1 word only)
+                    • Recommendation: (1 sentence only)
+                    • Reasoning: (one paragraph only)`
         }
       ],
       max_completion_tokens: 3000,

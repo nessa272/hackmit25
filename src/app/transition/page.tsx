@@ -72,6 +72,56 @@ export default function Home() {
 
   const docTypes = ["Insurance", "Progress Notes", "DME orders", "Nurse rounding", "Medical reports"];
 
+  // Function to parse structured synthesis output
+  const parseSynthesis = (text: string) => {
+    const sections = {
+      dischargeReadiness: [] as string[],
+      keyRisks: [] as string[],
+      riskLevel: '',
+      recommendation: '',
+      reasoning: ''
+    };
+
+    const lines = text.split('\n').filter(line => line.trim());
+    let currentSection = '';
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.startsWith('• Discharge Readiness:')) {
+        currentSection = 'dischargeReadiness';
+        const content = trimmedLine.replace('• Discharge Readiness:', '').trim();
+        if (content) sections.dischargeReadiness.push(content);
+      } else if (trimmedLine.startsWith('• Key Risks:')) {
+        currentSection = 'keyRisks';
+        const content = trimmedLine.replace('• Key Risks:', '').trim();
+        if (content) sections.keyRisks.push(content);
+      } else if (trimmedLine.startsWith('• Risk Level:')) {
+        currentSection = 'riskLevel';
+        sections.riskLevel = trimmedLine.replace('• Risk Level:', '').trim();
+      } else if (trimmedLine.startsWith('• Recommendation:')) {
+        currentSection = 'recommendation';
+        sections.recommendation = trimmedLine.replace('• Recommendation:', '').trim();
+      } else if (trimmedLine.startsWith('• Reasoning:')) {
+        currentSection = 'reasoning';
+        sections.reasoning = trimmedLine.replace('• Reasoning:', '').trim();
+      } else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+        // Additional bullet points
+        const content = trimmedLine.replace(/^[•-]\s*/, '').trim();
+        if (currentSection === 'dischargeReadiness' && content) {
+          sections.dischargeReadiness.push(content);
+        } else if (currentSection === 'keyRisks' && content) {
+          sections.keyRisks.push(content);
+        }
+      } else if (trimmedLine && currentSection === 'reasoning') {
+        // Continue reasoning paragraph
+        sections.reasoning += ' ' + trimmedLine;
+      }
+    }
+
+    return sections;
+  };
+
   // Trigger reasoning when all results are complete, then synthesis
   useEffect(() => {
     const allComplete = results.length > 0 && results.every(r => !r.loading && !r.error && r.analysis);
@@ -411,7 +461,88 @@ export default function Home() {
                   {generatingOrder ? "Generating..." : "Create Discharge Order"}
                 </button>
               </div>
-              <p className="text-blue-700 leading-relaxed">{synthesisResult.synthesis}</p>
+              <div className="space-y-4">
+                {(() => {
+                  const parsed = parseSynthesis(synthesisResult.synthesis);
+                  return (
+                    <>
+                      {parsed.dischargeReadiness.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            Discharge Readiness
+                          </h4>
+                          <ul className="list-disc list-inside text-blue-700 ml-4 space-y-1">
+                            {parsed.dischargeReadiness.map((item, i) => (
+                              <li key={i} className="leading-relaxed">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {parsed.keyRisks.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                            <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                            Key Risks
+                          </h4>
+                          <ul className="list-disc list-inside text-blue-700 ml-4 space-y-1">
+                            {parsed.keyRisks.map((item, i) => (
+                              <li key={i} className="leading-relaxed">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {parsed.riskLevel && (
+                        <div>
+                          <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                            <span className={`w-2 h-2 rounded-full mr-2 ${
+                              parsed.riskLevel.toLowerCase().includes('low') ? 'bg-green-500' :
+                              parsed.riskLevel.toLowerCase().includes('medium') ? 'bg-yellow-500' :
+                              parsed.riskLevel.toLowerCase().includes('high') ? 'bg-red-500' :
+                              'bg-gray-500'
+                            }`}></span>
+                            Risk Level
+                          </h4>
+                          <p className={`font-medium ml-4 ${
+                            parsed.riskLevel.toLowerCase().includes('low') ? 'text-green-700' :
+                            parsed.riskLevel.toLowerCase().includes('medium') ? 'text-yellow-700' :
+                            parsed.riskLevel.toLowerCase().includes('high') ? 'text-red-700' :
+                            'text-blue-700'
+                          }`}>
+                            {parsed.riskLevel}
+                          </p>
+                        </div>
+                      )}
+
+                      {parsed.recommendation && (
+                        <div>
+                          <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                            Recommendation
+                          </h4>
+                          <p className="text-blue-700 leading-relaxed ml-4 font-medium">
+                            {parsed.recommendation}
+                          </p>
+                        </div>
+                      )}
+
+                      {parsed.reasoning && (
+                        <div>
+                          <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                            <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                            Clinical Reasoning
+                          </h4>
+                          <p className="text-blue-700 leading-relaxed ml-4">
+                            {parsed.reasoning}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           )}
 
