@@ -123,9 +123,6 @@ export default function Home() {
     };
   }, [isClient]);
 
-  const [files, setFiles] = useState<File[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [uploadRows, setUploadRows] = useState<{file: File | null, type: string}[]>([{ file: null, type: "Insurance" }]);
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [synthesizing, setSynthesizing] = useState(false);
@@ -133,7 +130,6 @@ export default function Home() {
   const [generatingOrder, setGeneratingOrder] = useState(false);
   const [dischargeOrder, setDischargeOrder] = useState<DischargeOrder | null>(null);
   
-  const docTypes = ["Insurance", "Progress Notes", "DME orders", "Nurse rounding", "Medical reports"];
 
   // Trigger synthesis when all results are complete
   useEffect(() => {
@@ -202,54 +198,6 @@ export default function Home() {
     html2pdf().set(opt).from(element).save();
   };
 
-  const handleUpload = async () => {
-    const validRows = uploadRows.filter(row => row.file);
-    
-    if (validRows.length === 0) return;
-    
-    const newFiles = validRows.map(row => row.file!);
-    setFiles([...files, ...newFiles]);
-    setShowModal(false);
-    setUploadRows([{ file: null, type: "Insurance" }]);
-    
-    // Initialize results
-    const initialResults = validRows.map(row => ({
-      type: row.type,
-      analysis: "",
-      loading: true
-    }));
-    setResults(initialResults);
-    setShowResults(true);
-    
-    // Process uploads
-    for (const row of validRows) {
-      const formData = new FormData();
-      formData.append('file', row.file!);
-      
-      const endpoint = row.type.toLowerCase().replace(' ', '-');
-      
-      try {
-        const response = await fetch(`/api/${endpoint}`, {
-          method: 'POST',
-          body: formData,
-        });
-        
-        const result = await response.json();
-        
-        setResults(prev => prev.map(r => 
-          r.type === row.type 
-            ? { ...r, analysis: result.analysis, loading: false, error: response.ok ? undefined : result.error }
-            : r
-        ));
-      } catch (error) {
-        setResults(prev => prev.map(r => 
-          r.type === row.type 
-            ? { ...r, loading: false, error: 'Network error occurred' }
-            : r
-        ));
-      }
-    }
-  };
 
   return (
     <>
@@ -287,28 +235,6 @@ export default function Home() {
             >
               <span className="text-white">Redefining Care with Intelligence</span>
             </motion.h1>
-            <motion.div
-              className="flex flex-wrap justify-center gap-3 mb-8 max-w-4xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <AnimatePresence>
-                {files.map((file, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8, y: 0 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: -20 }}
-                    transition={{ duration: 0.3, delay: i * 0.1 }}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    className="bg-white/60 backdrop-blur-xl border border-white/40 px-4 py-2 rounded-full text-gray-700 font-medium transition-all duration-200 hover:bg-white/70"
-                  >
-                    {file.name}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
 
             <motion.button
               onClick={() => router.push('/transition')}
@@ -326,95 +252,6 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            style={{ pointerEvents: "auto" }}
-          >
-            <motion.div
-              className="bg-white/95 backdrop-blur-xl rounded-3xl p-4 w-full max-w-2xl border border-white/40"
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 20 }}
-              transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
-            >
-              <h2 className="text-xl font-medium mb-6 text-gray-800">Upload Documents</h2>
-              
-              <div className="space-y-4 mb-6">
-                {uploadRows.map((row, i) => (
-                  <div key={i} className="flex gap-3">
-                    <div className="flex-1 relative">
-                      <input 
-                        id={`file-${i}`}
-                        type="file" 
-                        accept=".pdf,.txt,.doc,.docx"
-                        onChange={(e) => {
-                          const newRows = [...uploadRows];
-                          newRows[i].file = e.target.files?.[0] || null;
-                          setUploadRows(newRows);
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <label
-                        htmlFor={`file-${i}`}
-                        className="block bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer hover:bg-white/60 transition-colors text-black"
-                      >
-                        {row.file ? row.file.name : "Choose file"}
-                      </label>
-                    </div>
-                    <select
-                      value={row.type}
-                      onChange={(e) => {
-                        const newRows = [...uploadRows];
-                        newRows[i].type = e.target.value;
-                        setUploadRows(newRows);
-                      }}
-                      className="bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px] text-black"
-                    >
-                      {docTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end mb-6">
-                <button 
-                  onClick={() => setUploadRows([...uploadRows, { file: null, type: "Insurance" }])}
-                  className="w-10 h-10 bg-gray-500/80 text-white rounded-full flex items-center justify-center hover:bg-gray-600/80 transition-all duration-200 backdrop-blur-xl hover:scale-110 font-semibold text-lg"
-                >
-                  +
-                </button>
-              </div>
-
-            <div className="flex gap-3">
-              <motion.button
-                onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-200/80 backdrop-blur-xl px-4 py-3 rounded-xl hover:bg-gray-300/80 transition-all duration-200 font-medium text-black"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                onClick={handleUpload}
-                className="flex-1 bg-black/80 text-white px-4 py-3 rounded-xl hover:bg-black/90 transition-all duration-200 backdrop-blur-xl font-medium"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Continue
-              </motion.button>
-            </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {showResults && (

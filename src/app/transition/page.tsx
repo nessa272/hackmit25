@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import ParticleBackground from "../components/ParticleBackground";
+import Image from "next/image";
 
 interface AnalysisResult {
   type: string;
@@ -52,77 +51,7 @@ interface DischargeOrder {
 }
 
 export default function Home() {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Add glowing cursor effect only on client
-  useEffect(() => {
-    if (!isClient) return;
-
-    // Add DM Serif Text font
-    const fontLink = document.createElement('link');
-    fontLink.href = 'https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&display=swap';
-    fontLink.rel = 'stylesheet';
-    document.head.appendChild(fontLink);
-
-    const style = document.createElement('style');
-    style.textContent = `
-      body {
-        cursor: none !important;
-      }
-      * {
-        cursor: none !important;
-      }
-      .cursor-glow {
-        position: fixed;
-        width: 14px;
-        height: 14px;
-        background: rgba(188, 210, 238, 0.56);
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 9999;
-        box-shadow: 0 0 10px rgba(96, 165, 250, 1), 0 0 30px rgba(96, 165, 250, 0.8), 0 0 45px rgba(96, 165, 250, 0.4);
-        transition: transform 0.1s ease-out;
-      }
-      .dm-serif-text-regular {
-        font-family: "DM Serif Text", serif;
-        font-weight: 400;
-        font-style: normal;
-      }
-      .dm-serif-text-regular-italic {
-        font-family: "DM Serif Text", serif;
-        font-weight: 400;
-        font-style: italic;
-      }
-    `;
-    document.head.appendChild(style);
-
-    const cursor = document.createElement('div');
-    cursor.className = 'cursor-glow';
-    document.body.appendChild(cursor);
-
-    const moveCursor = (e: MouseEvent) => {
-      cursor.style.left = e.clientX - 7 + 'px';
-      cursor.style.top = e.clientY - 7 + 'px';
-    };
-
-    document.addEventListener('mousemove', moveCursor);
-
-    return () => {
-      document.head.removeChild(style);
-      document.head.removeChild(fontLink);
-      document.removeEventListener('mousemove', moveCursor);
-      if (cursor.parentNode) {
-        cursor.parentNode.removeChild(cursor);
-      }
-    };
-  }, [isClient]);
-
   const [files, setFiles] = useState<File[]>([]);
-  const [showModal, setShowModal] = useState(false);
   const [uploadRows, setUploadRows] = useState<{file: File | null, type: string}[]>([{ file: null, type: "Insurance" }]);
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -207,7 +136,6 @@ export default function Home() {
     
     const newFiles = validRows.map(row => row.file!);
     setFiles([...files, ...newFiles]);
-    setShowModal(false);
     setUploadRows([{ file: null, type: "Insurance" }]);
     
     // Initialize results
@@ -250,97 +178,36 @@ export default function Home() {
   };
 
   return (
-    <>
-      {!showResults && <ParticleBackground />}
-      <motion.div
-        className={`min-h-screen flex flex-col items-center p-4 sm:p-8 ${showResults ? 'bg-gradient-to-br from-gray-50 to-white justify-start pt-12' : 'justify-center'} relative z-10`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        style={{ pointerEvents: "none" }}
-      >
-      <AnimatePresence>
-        {!showResults && (
-          <motion.div
-            key="hero"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col items-center"
-          >
-             <motion.h1
-              className="tracking-wide text-center mb-4 text-white drop-shadow-lg dm-serif-text-regular"
-              style={{ fontSize: '40px' }}
-              initial={{ opacity: 0, y: -50 }}
-              animate={{ opacity: 1, y: -30 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <span className="text-white">InfiniCare </span>
-            </motion.h1>
-            <motion.h1
-              className="text-4xl sm:text-6xl tracking-normal text-center mb-4 text-white drop-shadow-lg dm-serif-text-regular-italic"
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 2, delay: 2}}
-            >
-              <span className="text-white">Redefining Care with Intelligence</span>
-            </motion.h1>
-            <motion.div
-              className="flex flex-wrap justify-center gap-3 mb-8 max-w-4xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <AnimatePresence>
-                {files.map((file, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8, y: 0 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: -20 }}
-                    transition={{ duration: 0.3, delay: i * 0.1 }}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    className="bg-white/60 backdrop-blur-xl border border-white/40 px-4 py-2 rounded-full text-gray-700 font-medium transition-all duration-200 hover:bg-white/70"
-                  >
-                    {file.name}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+    <div className={`min-h-screen flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-gray-50 to-white ${showResults ? 'justify-start pt-12' : 'justify-center'} relative`}>
+      {/* Logo in top left corner */}
+      <div className="absolute top-4 left-4 z-10">
+        <Image
+          src="/infinityLogoTransparent.png" 
+          alt="Infinity Logo" 
+          width={60} 
+          height={60}
+          className="opacity-80"
+        />
+      </div>
+      {!showResults && (
+        <>
+          <h1 className="text-4xl sm:text-6xl font-light tracking-tight text-center mb-8 sm:mb-12 text-gray-800">
+            Redefining Care with Intelligence
+          </h1>
+          
+          <div className="flex flex-wrap justify-center gap-3 mb-8 max-w-4xl">
+            {files.map((file, i) => (
+              <div key={i} className="bg-white/60 backdrop-blur-xl border border-white/40 px-4 py-2 rounded-full text-gray-700 font-medium transition-all duration-200 hover:bg-white/70">
+                {file.name}
+              </div>
+            ))}
+          </div>
 
-            <motion.button
-              onClick={() => setShowModal(true)}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-12 py-4 rounded-full hover:from-blue-600 hover:to-blue-700 transition-all duration-300 backdrop-blur-xl font-medium text-lg shadow-2xl border border-blue-400/30 dm-serif-text-regular"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 20 }}
-              transition={{ duration: 2, delay: 0.6 }}
-              whileHover={{ scale: 1.05, boxShadow: "0 25px 50px -12px rgba(59, 130, 246, 0.5)" }}
-              whileTap={{ scale: 0.95 }}
-              style={{ pointerEvents: "auto" }}
-            >
-              Assess Patient Readiness
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </>
+      )}
 
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            style={{ pointerEvents: "auto" }}
-          >
-            <motion.div
-              className="bg-white/95 backdrop-blur-xl rounded-3xl p-4 w-full max-w-2xl border border-white/40"
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 20 }}
-              transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
-            >
+        <div className="w-full max-w-2xl">
+            <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-4 w-full border border-white/40">
               <h2 className="text-xl font-medium mb-6 text-gray-800">Upload Documents</h2>
               
               <div className="space-y-4 mb-6">
@@ -358,21 +225,21 @@ export default function Home() {
                         }}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <label
+                      <label 
                         htmlFor={`file-${i}`}
-                        className="block bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer hover:bg-white/60 transition-colors text-black"
+                        className="block bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer hover:bg-white/60 transition-colors"
                       >
                         {row.file ? row.file.name : "Choose file"}
                       </label>
                     </div>
-                    <select
+                    <select 
                       value={row.type}
                       onChange={(e) => {
                         const newRows = [...uploadRows];
                         newRows[i].type = e.target.value;
                         setUploadRows(newRows);
                       }}
-                      className="bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px] text-black"
+                      className="bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px]"
                     >
                       {docTypes.map(type => (
                         <option key={type} value={type}>{type}</option>
@@ -391,208 +258,89 @@ export default function Home() {
                 </button>
               </div>
 
-            <div className="flex gap-3">
-              <motion.button
-                onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-200/80 backdrop-blur-xl px-4 py-3 rounded-xl hover:bg-gray-300/80 transition-all duration-200 font-medium text-black"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Cancel
-              </motion.button>
-              <motion.button
+            <div className="flex justify-center">
+              <button
                 onClick={handleUpload}
-                className="flex-1 bg-black/80 text-white px-4 py-3 rounded-xl hover:bg-black/90 transition-all duration-200 backdrop-blur-xl font-medium"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                className="bg-black/80 text-white px-8 py-3 rounded-xl hover:bg-black/90 transition-all duration-200 backdrop-blur-xl font-medium"
               >
                 Continue
-              </motion.button>
+              </button>
             </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
 
-      <AnimatePresence>
-        {showResults && (
-          <motion.div
-            key="results"
-            className="w-full max-w-6xl space-y-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.6 }}
-          >
-            <motion.div
-              className="flex justify-between items-center mb-6"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+      {showResults && (
+        <div className="w-full max-w-6xl space-y-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-light text-gray-800">
+              {synthesizing ? "Synthesizing Case..." : synthesisResult ? "Discharge Assessment" : "Analysis Pending..."}
+            </h2>
+            <button
+              onClick={() => {
+                setShowResults(false);
+                setResults([]);
+                setSynthesisResult(null);
+                setSynthesizing(false);
+                setDischargeOrder(null);
+                setGeneratingOrder(false);
+              }}
+              className="bg-gray-500/80 text-white px-4 py-2 rounded-xl hover:bg-gray-600/80 transition-all duration-200 font-medium"
             >
-              <motion.h2
-                className="text-2xl font-light text-gray-800"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              >
-                {synthesizing ? "Synthesizing Case..." : synthesisResult ? "Discharge Assessment" : "Analysis Pending..."}
-              </motion.h2>
-              <motion.button
-                onClick={() => {
-                  setShowResults(false);
-                  setResults([]);
-                  setSynthesisResult(null);
-                  setSynthesizing(false);
-                  setDischargeOrder(null);
-                  setGeneratingOrder(false);
-                }}
-                className="bg-gray-500/80 text-white px-4 py-2 rounded-xl hover:bg-gray-600/80 transition-all duration-200 font-medium"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Back
-              </motion.button>
-            </motion.div>
+              Back
+            </button>
+          </div>
           {results.map((result, i) => (
-            <motion.div
-              key={i}
-              className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}
-              initial={{ opacity: 0, y: 50, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.5, delay: i * 0.1 + 0.4 }}
-              whileHover={{ scale: 1.02, y: -5 }}
-            >
+            <div key={i} className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-medium text-gray-800">{result.type}</h3>
                 {result.loading && (
-                  <motion.div
-                    className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  />
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
                 )}
               </div>
-
+              
               <div className="h-44 overflow-y-auto">
                 {result.loading ? (
                   <div className="space-y-3">
-                    <motion.div
-                      className="h-4 bg-gray-300/50 rounded"
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    <motion.div
-                      className="h-4 bg-gray-300/50 rounded w-3/4"
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
-                    />
-                    <motion.div
-                      className="h-4 bg-gray-300/50 rounded w-1/2"
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-                    />
+                    <div className="h-4 bg-gray-300/50 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-300/50 rounded w-3/4 animate-pulse"></div>
+                    <div className="h-4 bg-gray-300/50 rounded w-1/2 animate-pulse"></div>
                   </div>
                 ) : result.error ? (
-                  <motion.p
-                    className="text-red-600 font-medium"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    Error: {result.error}
-                  </motion.p>
+                  <p className="text-red-600 font-medium">Error: {result.error}</p>
                 ) : (
-                  <motion.p
-                    className="text-gray-700 leading-relaxed"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {result.analysis}
-                  </motion.p>
+                  <p className="text-gray-700 leading-relaxed">{result.analysis}</p>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
 
-          <AnimatePresence>
-            {synthesisResult && (
-              <motion.div
-                className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mt-6"
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -30, scale: 0.95 }}
-                transition={{ duration: 0.5, type: "spring", stiffness: 300, damping: 25 }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <motion.h3
-                    className="text-xl font-semibold text-blue-800"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                  >
-                    Discharge Recommendation
-                  </motion.h3>
-                  <motion.button
-                    onClick={handleCreateDischargeOrder}
-                    disabled={generatingOrder}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {generatingOrder ? "Generating..." : "Create Discharge Order"}
-                  </motion.button>
-                </div>
-                <motion.p
-                  className="text-blue-700 leading-relaxed"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
+          {synthesisResult && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-blue-800">Discharge Recommendation</h3>
+                <button
+                  onClick={handleCreateDischargeOrder}
+                  disabled={generatingOrder}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
                 >
-                  {synthesisResult.synthesis}
-                </motion.p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {generatingOrder ? "Generating..." : "Create Discharge Order"}
+                </button>
+              </div>
+              <p className="text-blue-700 leading-relaxed">{synthesisResult.synthesis}</p>
+            </div>
+          )}
 
-          <AnimatePresence>
-            {dischargeOrder && (
-              <motion.div
-                key="discharge-order"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -50 }}
-                transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 25 }}
-              >
-                <motion.div
-                  className="flex justify-end mb-4"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
+          {dischargeOrder && (
+            <>
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={handleDownloadPDF}
+                  className="bg-gray-100 text-black px-4 py-2 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
                 >
-                  <motion.button
-                    onClick={handleDownloadPDF}
-                    className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-all duration-200 font-medium"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Download PDF
-                  </motion.button>
-                </motion.div>
-              <motion.div
-                id="discharge-order"
-                className="bg-white border border-black rounded-lg p-8 font-mono text-sm shadow-lg"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-              >
+                  Download PDF
+                </button>
+              </div>
+              <div id="discharge-order" className="bg-white border border-black rounded-lg p-8 font-mono text-sm shadow-lg">
                 <div className="text-center mb-8">
                   <h2 className="text-3xl font-bold text-black mb-2">HOSPITAL DISCHARGE ORDER</h2>
                   <div className="w-full h-1 bg-black"></div>
@@ -727,14 +475,11 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-    </>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
