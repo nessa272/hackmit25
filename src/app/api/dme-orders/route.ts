@@ -1,8 +1,8 @@
-import OpenAI from 'openai';
+import Cerebras from '@cerebras/cerebras_cloud_sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const cerebras = new Cerebras({
+  apiKey: process.env.CEREBRAS_API_KEY
 });
 
 export async function POST(req: NextRequest) {
@@ -40,8 +40,7 @@ export async function POST(req: NextRequest) {
       text = await file.text();
     }
     
-    const completion = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+    const completion = await cerebras.chat.completions.create({
       messages: [
         {
           role: "system",
@@ -52,11 +51,16 @@ export async function POST(req: NextRequest) {
           content: text
         }
       ],
-      max_completion_tokens: 3500,
+      model: 'gpt-oss-120b',
+      stream: false,
+      max_completion_tokens: 2000,
+      temperature: 1,
+      top_p: 1,
+      reasoning_effort: "medium"
     });
 
     return NextResponse.json({ 
-      analysis: completion.choices[0].message.content,
+      analysis: (completion as any).choices[0].message.content,
       type: 'DME orders'
     });
   } catch (error) {
