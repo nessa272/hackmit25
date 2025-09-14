@@ -37,34 +37,22 @@ cache_volume = modal.Volume.from_name("gpt-oss-cache", create_if_missing=True)
 @modal.asgi_app(label="predict-los")
 def predict_length_of_stay():
     from fastapi import FastAPI
-    from pydantic import BaseModel
-    from typing import Optional
-    
-    class PatientInfo(BaseModel):
-        age: Optional[int] = None
-        gender: Optional[str] = None
-        diagnosis: Optional[str] = None
-        severity: Optional[str] = None
-        mortality_risk: Optional[str] = None
-        admission_type: Optional[str] = None
-        expected_disposition: Optional[str] = None
-        additional_info: Optional[str] = None
-        
-        class Config:
-            # Allow extra fields and be more flexible
-            extra = "allow"
-            # Coerce types when possible
-            validate_assignment = True
+    from typing import Dict, Any
+    import json
     
     web_app = FastAPI()
     
     @web_app.post("/")
-    def predict_los_endpoint(patient_data: PatientInfo) -> str:
+    def predict_los_endpoint(patient_data: Dict[str, Any]) -> str:
         """
         API endpoint to predict length of stay for a patient using the fine-tuned model.
         """
         print("🔔 Received POST request for LOS prediction")
-        print(f"📋 Patient data: {patient_data.dict()}")
+        print(f"📋 Patient data: {patient_data}")
+        
+        # Convert JSON data to string description
+        patient_description = json.dumps(patient_data, indent=2)
+        print(f"📝 Converted to string: {patient_description}")
         
         import torch
         from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -126,20 +114,7 @@ def predict_length_of_stay():
             model.save_pretrained(cached_ft_path)
             print("✅ Fine-tuned model cached successfully")
         
-        # Extract patient information from Pydantic model
-        age = patient_data.age or 0
-        gender = patient_data.gender or ""
-        diagnosis = patient_data.diagnosis or ""
-        severity = patient_data.severity or ""
-        mortality_risk = patient_data.mortality_risk or ""
-        admission_type = patient_data.admission_type or "emergency"
-        expected_disposition = patient_data.expected_disposition or "home"
-        additional_info = patient_data.additional_info or ""
-        
-        # Format patient information into prompt
-        patient_summary = f"{age} year old {gender}" if age and gender else "Patient"
-        
-        # Create the medical prompt
+        # Create the medical prompt using the JSON string
         messages = [
             {
                 "role": "user",
@@ -147,13 +122,7 @@ def predict_length_of_stay():
 
 IMPORTANT: Be conservative in your predictions and lean toward longer length of stay estimates. It is better to overestimate than underestimate hospital stay duration for patient safety and resource planning.
 
-Patient: {patient_summary}
-Diagnosis: {diagnosis}
-Severity: {severity}
-Mortality Risk: {mortality_risk}
-Admission Type: {admission_type}
-Expected Disposition: {expected_disposition}
-{f"Additional Info: {additional_info}" if additional_info else ""}
+Patient Information: {patient_description}
 
 Please provide:
 1. A conservative length of stay prediction in days (err on the side of longer stays)
@@ -207,13 +176,12 @@ Format your response as:
             # Extract reasoning
             reasoning = extract_reasoning(generated_text)
             
-            # Determine confidence based on factors
-            confidence = determine_confidence(patient_data.dict(), los_prediction)
-            
+            # Determine confidence based on JSON data
+            confidence = determine_confidence_from_json(patient_data, los_prediction)
+        
             # Format as string output
             return f"""Predicted Length of Stay: {los_prediction} days
 Confidence: {confidence}
-Patient: {patient_summary}
 
 Medical Reasoning:
 {reasoning}"""
@@ -223,10 +191,10 @@ Medical Reasoning:
             return f"""ERROR: GPU_OUT_OF_MEMORY
 Predicted Length of Stay: 5 days (Conservative fallback)
 Confidence: Low
-Patient: {patient_summary}
+Patient Data: {json.dumps(patient_data, separators=(',', ':'))}
 
 Medical Reasoning:
-Unable to generate detailed reasoning due to GPU memory constraints. This is a conservative estimate based on typical cases."""
+Unable to generate detailed reasoning due to GPU memory constraints. This is a conservative estimate based on typical cases for this patient profile."""
             
         except Exception as e:
             print(f"❌ Model inference error: {str(e)}")
@@ -235,7 +203,7 @@ Unable to generate detailed reasoning due to GPU memory constraints. This is a c
                 return f"""ERROR: INFERENCE_TIMEOUT
 Predicted Length of Stay: 5 days (Conservative fallback)
 Confidence: Low
-Patient: {patient_summary}
+Patient Data: {json.dumps(patient_data, separators=(',', ':'))}
 
 Medical Reasoning:
 Unable to generate detailed reasoning due to inference timeout. This is a conservative estimate based on typical cases for this patient profile."""
@@ -243,7 +211,7 @@ Unable to generate detailed reasoning due to inference timeout. This is a conser
                 return f"""ERROR: INFERENCE_ERROR
 Predicted Length of Stay: 5 days (Conservative fallback)
 Confidence: Low
-Patient: {patient_summary}
+Patient Data: {json.dumps(patient_data, separators=(',', ':'))}
 
 Medical Reasoning:
 Unable to generate reasoning due to model inference error: {str(e)}. This is a conservative estimate."""
@@ -296,8 +264,8 @@ def extract_reasoning(text: str) -> str:
     
     return "Based on the patient's clinical presentation, age, diagnosis, and severity level, this length of stay prediction considers standard care protocols and expected recovery timeline."
 
-def determine_confidence(patient_data: Dict[str, Any], los_prediction: int) -> str:
-    """Determine confidence level based on patient factors."""
+def determine_confidence_from_json(patient_data: Dict[str, Any], los_prediction: int) -> str:
+    """Determine confidence level based on JSON patient data."""
     confidence_score = 0
     
     # Age factor - ensure age is converted to int
@@ -319,11 +287,16 @@ def determine_confidence(patient_data: Dict[str, Any], los_prediction: int) -> s
     if severity and severity.lower() in ['mild', 'moderate', 'severe']:
         confidence_score += 1
     
+    # Check for detailed information (more fields provided)
+    non_empty_fields = sum(1 for v in patient_data.values() if v is not None and str(v).strip())
+    if non_empty_fields >= 4:
+        confidence_score += 1
+    
     # Reasonable LOS prediction
     if 1 <= los_prediction <= 30:
         confidence_score += 1
     
-    if confidence_score >= 3:
+    if confidence_score >= 4:
         return "High"
     elif confidence_score >= 2:
         return "Medium"

@@ -13,38 +13,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No analyses provided' }, { status: 400 });
     }
 
-    // Convert analyses to structured JSON using OpenAI
-    const analysesText = analyses.map((analysis: any) => 
-      `${analysis.type}: ${analysis.analysis || analysis.content}`
-    ).join('\n\n');
+    console.log(analyses);
+
 
     const structuredDataCompletion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are a medical data extraction specialist. Convert the provided medical analyses into a structured JSON format with these exact fields: patient_summary, diagnosis, severity, mortality_risk, admission_type, expected_disposition, additional_info. Extract relevant information from the analyses and populate each field. If a field cannot be determined from the analyses, leave it as an empty string. Return only valid JSON.
-
-Medical analyses to convert:
-${analysesText}`
+          content: "You are a medical data extraction specialist. Convert the provided medical analyses into a structured JSON format with these exact fields: patient_summary, diagnosis, severity, mortality_risk, admission_type, expected_disposition, additional_info. Extract relevant information from the analyses and populate each field. If a field cannot be determined from the analyses, leave it as an empty string. Return only valid JSON."
         },
         {
           role: "user",
-          content: `Convert the medical analyses into this exact JSON structure:
+          content: `Convert these medical analyses into the exact JSON structure:
 
-            {
-              "patient_summary": "",
-              "diagnosis": "",
-              "severity": "",
-              "mortality_risk": "",
-              "admission_type": "",
-              "expected_disposition": "",
-              "additional_info": ""
-            }`
+Medical analyses to convert:
+${analyses.map((analysis: any) => `${analysis.type}: ${analysis.analysis || analysis.content}`).join('\n\n')}
+
+Required JSON structure:
+{
+  "patient_summary": "",
+  "diagnosis": "",
+  "severity": "",
+  "mortality_risk": "",
+  "admission_type": "",
+  "expected_disposition": "",
+  "additional_info": ""
+}`
         }
       ],
       max_completion_tokens: 1000,
     });
+    console.log(structuredDataCompletion.choices[0].message.content);
 
     const fallbackReasoning = "Based on comprehensive analysis of the patient's medical records, current clinical status, and documented progress notes, the patient demonstrates stable vital signs, adequate response to treatment protocols, and meets established discharge criteria. The patient's functional capacity has improved to baseline levels, pain management is optimized with oral medications, and all acute medical issues have been appropriately addressed. Family education has been completed, and appropriate follow-up care has been arranged to ensure continuity of care post-discharge.";
 
