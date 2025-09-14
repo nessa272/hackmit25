@@ -32,43 +32,19 @@ ${analysesText}`
           role: "user",
           content: `Convert the medical analyses into this exact JSON structure:
 
-{
-  "patient_summary": "",
-  "diagnosis": "",
-  "severity": "",
-  "mortality_risk": "",
-  "admission_type": "",
-  "expected_disposition": "",
-  "additional_info": ""
-}`
+            {
+              "patient_summary": "",
+              "diagnosis": "",
+              "severity": "",
+              "mortality_risk": "",
+              "admission_type": "",
+              "expected_disposition": "",
+              "additional_info": ""
+            }`
         }
       ],
       max_completion_tokens: 1000,
     });
-
-    let structuredData;
-    try {
-      structuredData = JSON.parse(structuredDataCompletion.choices[0].message.content || '{}');
-    } catch (parseError) {
-      // Fallback to empty structure if JSON parsing fails
-      structuredData = {
-        patient_summary: '',
-        diagnosis: '',
-        severity: '',
-        mortality_risk: '',
-        admission_type: '',
-        expected_disposition: '',
-        additional_info: ''
-      };
-    }
-
-    const prompt = `Patient: ${structuredData.patient_summary}
-Diagnosis: ${structuredData.diagnosis}
-Severity: ${structuredData.severity}
-Mortality Risk: ${structuredData.mortality_risk}
-Admission Type: ${structuredData.admission_type}
-Expected Disposition: ${structuredData.expected_disposition}${structuredData.additional_info ? `
-Additional Info: ${structuredData.additional_info}` : ''}`;
 
     const fallbackReasoning = "Based on comprehensive analysis of the patient's medical records, current clinical status, and documented progress notes, the patient demonstrates stable vital signs, adequate response to treatment protocols, and meets established discharge criteria. The patient's functional capacity has improved to baseline levels, pain management is optimized with oral medications, and all acute medical issues have been appropriately addressed. Family education has been completed, and appropriate follow-up care has been arranged to ensure continuity of care post-discharge.";
 
@@ -84,8 +60,8 @@ Additional Info: ${structuredData.additional_info}` : ''}`;
         },
         body: JSON.stringify({
           model_path: '/models/gpt-oss-120b-finetune',
-          prompt: prompt,
-          max_new_tokens: 256,
+          prompt: structuredDataCompletion.choices[0].message.content,
+          max_new_tokens: 500,
           temperature: 0.7,
         }),
         signal: controller.signal,
