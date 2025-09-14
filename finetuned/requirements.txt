@@ -1,0 +1,37 @@
+# Python Requirements for Fine-tuning Module
+# Healthcare Discharge Planning AI System - Model Training
+
+# Core ML Libraries
+torch>=2.0.0
+transformers>=4.35.0
+peft>=0.6.0
+datasets>=2.14.0
+
+# Modal Cloud Platform
+modal>=0.63.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Configuration and Environment
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+accelerate>=0.24.0
+
+# Quantization and Optimization
+bitsandbytes>=0.41.0
+
+# Logging and Monitoring
+wandb>=0.16.0
+
+# HuggingFace Hub Integration
+huggingface-hub>=0.17.0
+
+# Development Tools
+pytest>=7.4.0
+black>=23.9.0
+
+# GPU Support Notes:
+# For CUDA 11.8: pip install torch --index-url https://download.pytorch.org/whl/cu118
+# For CUDA 12.1: pip install torch --index-url https://download.pytorch.org/whl/cu121
