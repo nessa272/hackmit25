@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ParticleBackground from "../components/ParticleBackground";
 
 interface AnalysisResult {
   type: string;
@@ -51,6 +52,58 @@ interface DischargeOrder {
 }
 
 export default function Home() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Add glowing cursor effect only on client
+  useEffect(() => {
+    if (!isClient) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      body {
+        cursor: none !important;
+      }
+      * {
+        cursor: none !important;
+      }
+      .cursor-glow {
+        position: fixed;
+        width: 20px;
+        height: 20px;
+        background: rgba(96, 165, 250, 0.8);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        box-shadow: 0 0 20px rgba(96, 165, 250, 0.8), 0 0 40px rgba(96, 165, 250, 0.4);
+        transition: transform 0.1s ease-out;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const cursor = document.createElement('div');
+    cursor.className = 'cursor-glow';
+    document.body.appendChild(cursor);
+
+    const moveCursor = (e: MouseEvent) => {
+      cursor.style.left = e.clientX - 10 + 'px';
+      cursor.style.top = e.clientY - 10 + 'px';
+    };
+
+    document.addEventListener('mousemove', moveCursor);
+
+    return () => {
+      document.head.removeChild(style);
+      document.removeEventListener('mousemove', moveCursor);
+      if (cursor.parentNode) {
+        cursor.parentNode.removeChild(cursor);
+      }
+    };
+  }, [isClient]);
+
   const [files, setFiles] = useState<File[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [uploadRows, setUploadRows] = useState<{file: File | null, type: string}[]>([{ file: null, type: "Insurance" }]);
@@ -180,12 +233,15 @@ export default function Home() {
   };
 
   return (
-    <motion.div
-      className={`min-h-screen flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-gray-50 to-white ${showResults ? 'justify-start pt-12' : 'justify-center'}`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
+    <>
+      {!showResults && <ParticleBackground />}
+      <motion.div
+        className={`min-h-screen flex flex-col items-center p-4 sm:p-8 ${showResults ? 'bg-gradient-to-br from-gray-50 to-white justify-start pt-12' : 'justify-center'} relative z-10`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        style={{ pointerEvents: "none" }}
+      >
       <AnimatePresence>
         {!showResults && (
           <motion.div
@@ -196,15 +252,22 @@ export default function Home() {
             transition={{ duration: 0.6 }}
             className="flex flex-col items-center"
           >
-            <motion.h1
-              className="text-4xl sm:text-6xl font-light tracking-tight text-center mb-8 sm:mb-12 text-gray-800"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
+             <motion.h1
+              className="text-4xl sm:text-6xl font-light tracking-tight text-center mb-4 text-white drop-shadow-lg"
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: -30 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              Redefining Care with Intelligence
+              <span className="text-white">InfiniCare </span>
             </motion.h1>
-
+            <motion.h1
+              className="text-4xl sm:text-6xl font-light tracking-tight text-center mb-4 text-white drop-shadow-lg"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 2, delay: 2}}
+            >
+              <span className="text-white">Redefining Care with Intelligence</span>
+            </motion.h1>
             <motion.div
               className="flex flex-wrap justify-center gap-3 mb-8 max-w-4xl"
               initial={{ opacity: 0 }}
@@ -230,14 +293,15 @@ export default function Home() {
 
             <motion.button
               onClick={() => setShowModal(true)}
-              className="bg-black/80 text-white px-8 py-3 rounded-2xl hover:bg-black/90 transition-all duration-200 backdrop-blur-xl font-medium"
-              initial={{ opacity: 0, y: 0 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0 }}
-              whileHover={{ scale: 1.05 }}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-12 py-4 rounded-full hover:from-blue-600 hover:to-blue-700 transition-all duration-300 backdrop-blur-xl font-medium text-lg shadow-2xl border border-blue-400/30"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 20 }}
+              transition={{ duration: 2, delay: 0.6 }}
+              whileHover={{ scale: 1.05, boxShadow: "0 25px 50px -12px rgba(59, 130, 246, 0.5)" }}
               whileTap={{ scale: 0.95 }}
+              style={{ pointerEvents: "auto" }}
             >
-              Patient Readiness
+              Assess Patient Readiness
             </motion.button>
           </motion.div>
         )}
@@ -251,6 +315,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
+            style={{ pointerEvents: "auto" }}
           >
             <motion.div
               className="bg-white/95 backdrop-blur-xl rounded-3xl p-4 w-full max-w-2xl border border-white/40"
@@ -653,5 +718,6 @@ export default function Home() {
         )}
       </AnimatePresence>
     </motion.div>
+    </>
   );
 }
