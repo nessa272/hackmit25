@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 interface AnalysisResult {
@@ -51,6 +52,7 @@ interface DischargeOrder {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [uploadRows, setUploadRows] = useState<{file: File | null, type: string}[]>([{ file: null, type: "Insurance" }]);
   const [results, setResults] = useState<AnalysisResult[]>([]);
@@ -178,7 +180,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-gray-50 to-white ${showResults ? 'justify-start pt-12' : 'justify-center'} relative`}>
+    <div className={`min-h-screen flex flex-col items-center p-4 sm:p-8 ${showResults ? 'justify-start pt-12' : 'justify-center'} relative`} style={{backgroundColor: '#0e1a2e'}}>
       {/* Logo in top left corner */}
       <div className="absolute top-4 left-4 z-10">
         <Image
@@ -191,13 +193,10 @@ export default function Home() {
       </div>
       {!showResults && (
         <>
-          <h1 className="text-4xl sm:text-6xl font-light tracking-tight text-center mb-8 sm:mb-12 text-gray-800">
-            Redefining Care with Intelligence
-          </h1>
           
           <div className="flex flex-wrap justify-center gap-3 mb-8 max-w-4xl">
             {files.map((file, i) => (
-              <div key={i} className="bg-white/60 backdrop-blur-xl border border-white/40 px-4 py-2 rounded-full text-gray-700 font-medium transition-all duration-200 hover:bg-white/70">
+              <div key={i} className="bg-white/60 backdrop-blur-xl border border-white/40 px-4 py-2 rounded-full text-black font-medium transition-all duration-200 hover:bg-white/70">
                 {file.name}
               </div>
             ))}
@@ -208,7 +207,7 @@ export default function Home() {
 
         <div className="w-full max-w-2xl">
             <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-4 w-full border border-white/40">
-              <h2 className="text-xl font-medium mb-6 text-gray-800">Upload Documents</h2>
+              <h2 className="text-xl font-medium mb-6 text-black">Upload Documents</h2>
               
               <div className="space-y-4 mb-6">
                 {uploadRows.map((row, i) => (
@@ -225,21 +224,21 @@ export default function Home() {
                         }}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <label 
+                      <label
                         htmlFor={`file-${i}`}
-                        className="block bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer hover:bg-white/60 transition-colors"
+                        className="block rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer transition-colors text-black border border-gray-400/60" style={{backgroundColor: '#d5dfed'}} onMouseEnter={(e) => e.target.style.backgroundColor = '#b4becf'} onMouseLeave={(e) => e.target.style.backgroundColor = '#d5dfed'}
                       >
                         {row.file ? row.file.name : "Choose file"}
                       </label>
                     </div>
-                    <select 
+                    <select
                       value={row.type}
                       onChange={(e) => {
                         const newRows = [...uploadRows];
                         newRows[i].type = e.target.value;
                         setUploadRows(newRows);
                       }}
-                      className="bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px]"
+                      className="rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px] text-black border border-gray-400/60" style={{backgroundColor: '#d5dfed'}} onMouseEnter={(e) => e.target.style.backgroundColor = '#b4becf'} onMouseLeave={(e) => e.target.style.backgroundColor = '#d5dfed'}
                     >
                       {docTypes.map(type => (
                         <option key={type} value={type}>{type}</option>
@@ -258,10 +257,16 @@ export default function Home() {
                 </button>
               </div>
 
-            <div className="flex justify-center">
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/')}
+                className="flex-1 bg-gray-200/80 backdrop-blur-xl px-4 py-3 rounded-xl hover:bg-gray-300/80 transition-all duration-200 font-medium text-black"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleUpload}
-                className="bg-black/80 text-white px-8 py-3 rounded-xl hover:bg-black/90 transition-all duration-200 backdrop-blur-xl font-medium"
+                className="flex-1 bg-black/80 text-white px-4 py-3 rounded-xl hover:bg-black/90 transition-all duration-200 backdrop-blur-xl font-medium"
               >
                 Continue
               </button>
@@ -272,7 +277,7 @@ export default function Home() {
       {showResults && (
         <div className="w-full max-w-6xl space-y-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-light text-gray-800">
+            <h2 className="text-2xl font-light text-black">
               {synthesizing ? "Synthesizing Case..." : synthesisResult ? "Discharge Assessment" : "Analysis Pending..."}
             </h2>
             <button
@@ -292,7 +297,7 @@ export default function Home() {
           {results.map((result, i) => (
             <div key={i} className={`bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${synthesizing ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-medium text-gray-800">{result.type}</h3>
+                <h3 className="text-xl font-medium text-black">{result.type}</h3>
                 {result.loading && (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
                 )}

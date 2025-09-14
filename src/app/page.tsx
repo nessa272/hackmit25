@@ -246,7 +246,7 @@ export default function Home() {
               whileTap={{ scale: 0.95 }}
               style={{ pointerEvents: "auto" }}
             >
-              START
+              Assess Patient Readiness
             </motion.button>
           </motion.div>
         )}
