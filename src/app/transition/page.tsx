@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
-import ParticleBackground from "./components/ParticleBackground";
+import ParticleBackground from "../components/ParticleBackground";
 
 interface AnalysisResult {
   type: string;
@@ -53,7 +52,6 @@ interface DischargeOrder {
 }
 
 export default function Home() {
-  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -311,7 +309,7 @@ export default function Home() {
             </motion.div>
 
             <motion.button
-              onClick={() => router.push('/transition')}
+              onClick={() => setShowModal(true)}
               className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-12 py-4 rounded-full hover:from-blue-600 hover:to-blue-700 transition-all duration-300 backdrop-blur-xl font-medium text-lg shadow-2xl border border-blue-400/30 dm-serif-text-regular"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 20 }}
@@ -320,7 +318,7 @@ export default function Home() {
               whileTap={{ scale: 0.95 }}
               style={{ pointerEvents: "auto" }}
             >
-              START
+              Assess Patient Readiness
             </motion.button>
           </motion.div>
         )}

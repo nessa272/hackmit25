@@ -85,6 +85,7 @@ export default function ParticleBackground() {
 
         const dx = infinityPos.x - particle.x;
         const dy = infinityPos.y - particle.y;
+        
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         // Stronger attraction force for seamless movement
