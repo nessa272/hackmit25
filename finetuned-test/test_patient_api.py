@@ -140,6 +140,15 @@ def test_prediction_endpoint():
                 print("⚠️  High error prediction (>3 days error)")
             
             return True, result
+        elif response.status_code == 422:
+            print(f"❌ Validation Error (422): Request data is invalid")
+            try:
+                error_detail = response.json()
+                print(f"📋 Error Details: {json.dumps(error_detail, indent=2)}")
+                print(f"📤 Request Data Sent: {json.dumps(NSTEMI_TEST_CASE, indent=2)}")
+            except:
+                print(f"Response: {response.text}")
+            return False, None
         else:
             print(f"❌ Prediction failed with status {response.status_code}")
             print(f"Response: {response.text}")

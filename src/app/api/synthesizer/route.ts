@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 export async function POST(req: NextRequest) {
   try {
-    const { analyses } = await req.json();
+    const { analyses, reasoning } = await req.json();
     
     if (!analyses || analyses.length === 0) {
       return NextResponse.json({ error: 'No analyses provided' }, { status: 400 });
@@ -17,16 +17,31 @@ export async function POST(req: NextRequest) {
       `${analysis.type}: ${analysis.analysis}`
     ).join('\n\n');
 
+    const reasoningText = reasoning?.reasoning || '';
+    const reasoningSource = reasoning?.source || 'not available';
+
     const completion = await openai.chat.completions.create({
       model: "gpt-5-mini",
       messages: [
         {
           role: "system",
-          content: "You are a discharge planning specialist. Based on the provided medical document analyses, determine if the patient is ready for discharge. Provide a clear recommendation with supporting reasoning in paragraph form only. Output plain text without any formatting, bullet points, lists, or special characters."
+          content: "You are a discharge planning specialist. Provide a BRIEF discharge assessment emphasizing CONCISENESS. Give PRIMARY EMPHASIS to the clinical reasoning from the fine-tuned model. Use bullet points with these sections: 1) Discharge Readiness (max 2 bullets, 1 sentence each), 2) Key Risks (max 2 bullets, 1 sentence each), 3) Risk Level (1 word: Low/Moderate/High/Critical), 4) Recommendation (1 sentence). Be extremely concise - total response should be under 300 words."
         },
         {
           role: "user",
-          content: `Based on these medical document analyses, is this patient ready for discharge?\n\n${analysesText}`
+          content: `Provide a BRIEF discharge assessment (under 300 words total):
+
+CLINICAL REASONING (${reasoningSource}):
+${reasoningText}
+
+MEDICAL DOCUMENT ANALYSES:
+${analysesText}
+
+Format as:
+• Discharge Readiness: (max 2 bullets, 1 sentence each)
+• Key Risks: (max 2 bullets, 1 sentence each)  
+• Risk Level: (1 word only)
+• Recommendation: (1 sentence only)`
         }
       ],
       max_completion_tokens: 3000,

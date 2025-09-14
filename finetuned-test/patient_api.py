@@ -32,7 +32,7 @@ cache_volume = modal.Volume.from_name("gpt-oss-cache", create_if_missing=True)
     gpu="H100:1",
     volumes={"/cache": cache_volume},
     timeout=300,
-    container_idle_timeout=120,
+    scaledown_window=120,
 )
 @modal.asgi_app(label="predict-los")
 def predict_length_of_stay():
@@ -41,22 +41,31 @@ def predict_length_of_stay():
     from typing import Optional
     
     class PatientInfo(BaseModel):
-        age: int
-        gender: str
-        diagnosis: str
-        severity: str = ""
-        mortality_risk: str = ""
-        admission_type: str = "emergency"
-        expected_disposition: str = "home"
-        additional_info: str = ""
+        age: Optional[int] = None
+        gender: Optional[str] = None
+        diagnosis: Optional[str] = None
+        severity: Optional[str] = None
+        mortality_risk: Optional[str] = None
+        admission_type: Optional[str] = None
+        expected_disposition: Optional[str] = None
+        additional_info: Optional[str] = None
+        
+        class Config:
+            # Allow extra fields and be more flexible
+            extra = "allow"
+            # Coerce types when possible
+            validate_assignment = True
     
     web_app = FastAPI()
     
-    @web_app.post("/predict")
-    def predict_los_endpoint(patient_data: PatientInfo) -> Dict[str, Any]:
+    @web_app.post("/")
+    def predict_los_endpoint(patient_data: PatientInfo) -> str:
         """
         API endpoint to predict length of stay for a patient using the fine-tuned model.
         """
+        print("🔔 Received POST request for LOS prediction")
+        print(f"📋 Patient data: {patient_data.dict()}")
+        
         import torch
         from transformers import AutoTokenizer, AutoModelForCausalLM
         from peft import PeftModel
@@ -118,17 +127,17 @@ def predict_length_of_stay():
             print("✅ Fine-tuned model cached successfully")
         
         # Extract patient information from Pydantic model
-        age = patient_data.age
-        gender = patient_data.gender
-        diagnosis = patient_data.diagnosis
-        severity = patient_data.severity
-        mortality_risk = patient_data.mortality_risk
-        admission_type = patient_data.admission_type
-        expected_disposition = patient_data.expected_disposition
-        additional_info = patient_data.additional_info
+        age = patient_data.age or 0
+        gender = patient_data.gender or ""
+        diagnosis = patient_data.diagnosis or ""
+        severity = patient_data.severity or ""
+        mortality_risk = patient_data.mortality_risk or ""
+        admission_type = patient_data.admission_type or "emergency"
+        expected_disposition = patient_data.expected_disposition or "home"
+        additional_info = patient_data.additional_info or ""
         
         # Format patient information into prompt
-        patient_summary = f"{age} year old {gender}"
+        patient_summary = f"{age} year old {gender}" if age and gender else "Patient"
         
         # Create the medical prompt
         messages = [
@@ -201,45 +210,43 @@ Format your response as:
             # Determine confidence based on factors
             confidence = determine_confidence(patient_data.dict(), los_prediction)
             
-            return {
-                "predicted_los_days": los_prediction,
-                "reasoning": reasoning,
-                "confidence": confidence,
-                "patient_summary": patient_summary
-            }
+            # Format as string output
+            return f"""Predicted Length of Stay: {los_prediction} days
+Confidence: {confidence}
+Patient: {patient_summary}
+
+Medical Reasoning:
+{reasoning}"""
             
         except torch.cuda.OutOfMemoryError:
             print("❌ CUDA out of memory during inference")
-            return {
-                "error": "GPU_OUT_OF_MEMORY",
-                "message": "Model inference failed due to insufficient GPU memory. Please try again later.",
-                "predicted_los_days": 5,  # Conservative fallback
-                "reasoning": "Unable to generate detailed reasoning due to GPU memory constraints. This is a conservative estimate based on typical NSTEMI cases.",
-                "confidence": "Low",
-                "patient_summary": patient_summary
-            }
+            return f"""ERROR: GPU_OUT_OF_MEMORY
+Predicted Length of Stay: 5 days (Conservative fallback)
+Confidence: Low
+Patient: {patient_summary}
+
+Medical Reasoning:
+Unable to generate detailed reasoning due to GPU memory constraints. This is a conservative estimate based on typical cases."""
             
         except Exception as e:
             print(f"❌ Model inference error: {str(e)}")
             # Check if it's a timeout-related error
             if "timeout" in str(e).lower() or "time" in str(e).lower():
-                return {
-                    "error": "INFERENCE_TIMEOUT",
-                    "message": "Model inference timed out. This may occur when the model falls back to CPU processing.",
-                    "predicted_los_days": 5,  # Conservative fallback
-                    "reasoning": "Unable to generate detailed reasoning due to inference timeout. This is a conservative estimate based on typical cases for this patient profile.",
-                    "confidence": "Low",
-                    "patient_summary": patient_summary
-                }
+                return f"""ERROR: INFERENCE_TIMEOUT
+Predicted Length of Stay: 5 days (Conservative fallback)
+Confidence: Low
+Patient: {patient_summary}
+
+Medical Reasoning:
+Unable to generate detailed reasoning due to inference timeout. This is a conservative estimate based on typical cases for this patient profile."""
             else:
-                return {
-                    "error": "INFERENCE_ERROR",
-                    "message": f"Model inference failed: {str(e)}",
-                    "predicted_los_days": 5,  # Conservative fallback
-                    "reasoning": "Unable to generate reasoning due to model inference error. This is a conservative estimate.",
-                    "confidence": "Low",
-                    "patient_summary": patient_summary
-                }
+                return f"""ERROR: INFERENCE_ERROR
+Predicted Length of Stay: 5 days (Conservative fallback)
+Confidence: Low
+Patient: {patient_summary}
+
+Medical Reasoning:
+Unable to generate reasoning due to model inference error: {str(e)}. This is a conservative estimate."""
     
     return web_app
 
@@ -303,13 +310,13 @@ def determine_confidence(patient_data: Dict[str, Any], los_prediction: int) -> s
         pass  # Skip age factor if conversion fails
     
     # Clear diagnosis
-    diagnosis = patient_data.get("diagnosis", "")
+    diagnosis = patient_data.get("diagnosis", "") or ""
     if len(diagnosis) > 10:
         confidence_score += 1
     
     # Severity specified
-    severity = patient_data.get("severity", "")
-    if severity.lower() in ['mild', 'moderate', 'severe']:
+    severity = patient_data.get("severity", "") or ""
+    if severity and severity.lower() in ['mild', 'moderate', 'severe']:
         confidence_score += 1
     
     # Reasonable LOS prediction

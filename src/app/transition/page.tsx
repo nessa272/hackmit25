@@ -109,7 +109,10 @@ export default function Home() {
       const response = await fetch('/api/synthesizer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analyses: results }),
+        body: JSON.stringify({ 
+          analyses: results,
+          reasoning: reasoningResult 
+        }),
       });
       
       const result = await response.json();
@@ -395,6 +398,23 @@ export default function Home() {
                 Back
               </motion.button>
             </motion.div>
+
+          {synthesisResult && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-blue-800">Discharge Recommendation</h3>
+                <button
+                  onClick={handleCreateDischargeOrder}
+                  disabled={generatingOrder}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
+                >
+                  {generatingOrder ? "Generating..." : "Create Discharge Order"}
+                </button>
+              </div>
+              <p className="text-blue-700 leading-relaxed">{synthesisResult.synthesis}</p>
+            </div>
+          )}
+
           {results.map((result, i) => (
             <div key={i} className={`${result.type === 'Insurance' ? 'bg-white' : 'bg-white/60'} backdrop-blur-xl border border-gray-200 rounded-2xl p-6 h-64 transition-all duration-1000 ${reasoning || synthesizing ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
@@ -429,22 +449,6 @@ export default function Home() {
               <div className="h-44 overflow-y-auto">
                 <p className="text-gray-700 leading-relaxed">{reasoningResult.reasoning}</p>
               </div>
-            </div>
-          )}
-
-          {synthesisResult && (
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-blue-800">Discharge Recommendation</h3>
-                <button
-                  onClick={handleCreateDischargeOrder}
-                  disabled={generatingOrder}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium disabled:opacity-50"
-                >
-                  {generatingOrder ? "Generating..." : "Create Discharge Order"}
-                </button>
-              </div>
-              <p className="text-blue-700 leading-relaxed">{synthesisResult.synthesis}</p>
             </div>
           )}
 
