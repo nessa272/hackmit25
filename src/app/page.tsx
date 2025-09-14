@@ -80,7 +80,7 @@ export default function Home() {
         position: fixed;
         width: 14px;
         height: 14px;
-        background: rgba(148, 196, 255, 0.56);
+        background: rgba(188, 210, 238, 0.56);
         border-radius: 50%;
         pointer-events: none;
         z-index: 9999;
@@ -270,7 +270,8 @@ export default function Home() {
             className="flex flex-col items-center"
           >
              <motion.h1
-              className="text-4xl sm:text-6xl tracking-wide text-center mb-4 text-white drop-shadow-lg dm-serif-text-regular"
+              className="tracking-wide text-center mb-4 text-white drop-shadow-lg dm-serif-text-regular"
+              style={{ fontSize: '40px' }}
               initial={{ opacity: 0, y: -50 }}
               animate={{ opacity: 1, y: -30 }}
               transition={{ duration: 0.8, delay: 0.2 }}

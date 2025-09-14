@@ -77,7 +77,7 @@ export default function ParticleBackground() {
 
       if (isInfinityMode) {
         const centerX = dimensions.width / 2;
-        const centerY = dimensions.height / 2 - 50;
+        const centerY = dimensions.height / 2 - 70;
 
         // Create a smoother infinity curve by spacing particles more evenly
         const t = (index / particlesRef.current.length) * 4 * Math.PI + (performance.now() - startTimeRef.current) * 0.0003;
@@ -234,32 +234,28 @@ export default function ParticleBackground() {
     }
   }, [isInfinityMode, dimensions, createParticles]);
 
-  if (!isClient) {
-    return (
-      <div className="fixed inset-0 w-full h-full z-0">
+  return (
+    <div className="fixed inset-0 w-full h-full z-0">
+      {!isClient ? (
         <div
           className="absolute inset-0 w-full h-full"
           style={{
             background: "linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%)"
           }}
         />
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 w-full h-full z-0">
-      <canvas
-        ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        onClick={handleCanvasClick}
-        className="absolute inset-0 w-full h-full cursor-pointer"
-        style={{
-          background: "linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%)",
-          pointerEvents: "auto"
-        }}
-      />
+      ) : (
+        <canvas
+          ref={canvasRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          onClick={handleCanvasClick}
+          className="absolute inset-0 w-full h-full cursor-pointer"
+          style={{
+            background: "linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%)",
+            pointerEvents: "auto"
+          }}
+        />
+      )}
     </div>
   );
 }
