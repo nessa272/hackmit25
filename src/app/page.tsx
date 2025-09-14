@@ -229,7 +229,7 @@ export default function Home() {
               <span className="text-white">InfiniCare </span>
             </motion.h1>
             <motion.h1
-              className="text-4xl sm:text-6xl tracking-normal text-center mb-4 text-white drop-shadow-lg dm-serif-text-regular-italic"
+              className="text-4xl sm:text-6xl tracking-normal text-center mb-12 text-white drop-shadow-lg dm-serif-text-regular-italic"
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 2, delay: 2}}
             >
