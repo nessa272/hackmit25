@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface AnalysisResult {
   type: string;
@@ -179,7 +180,17 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-gray-50 to-white ${showResults ? 'justify-start pt-12' : 'justify-center'}`}>
+    <div className={`min-h-screen flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-gray-50 to-white ${showResults ? 'justify-start pt-12' : 'justify-center'} relative`}>
+      {/* Logo in top left corner */}
+      <div className="absolute top-4 left-4 z-10">
+        <Image
+          src="/infinityLogoTransparent.png" 
+          alt="Infinity Logo" 
+          width={60} 
+          height={60}
+          className="opacity-80"
+        />
+      </div>
       {!showResults && (
         <>
           <h1 className="text-4xl sm:text-6xl font-light tracking-tight text-center mb-8 sm:mb-12 text-gray-800">
@@ -340,7 +351,7 @@ export default function Home() {
               <div className="flex justify-end mb-4">
                 <button
                   onClick={handleDownloadPDF}
-                  className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-all duration-200 font-medium"
+                  className="bg-gray-100 text-black px-4 py-2 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
                 >
                   Download PDF
                 </button>
