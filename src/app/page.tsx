@@ -276,21 +276,21 @@ export default function Home() {
                         }}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <label 
+                      <label
                         htmlFor={`file-${i}`}
-                        className="block bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer hover:bg-white/60 transition-colors"
+                        className="block bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm cursor-pointer hover:bg-white/60 transition-colors text-black"
                       >
                         {row.file ? row.file.name : "Choose file"}
                       </label>
                     </div>
-                    <select 
+                    <select
                       value={row.type}
                       onChange={(e) => {
                         const newRows = [...uploadRows];
                         newRows[i].type = e.target.value;
                         setUploadRows(newRows);
                       }}
-                      className="bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px]"
+                      className="bg-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm backdrop-blur-sm min-w-[140px] text-black"
                     >
                       {docTypes.map(type => (
                         <option key={type} value={type}>{type}</option>
@@ -312,7 +312,7 @@ export default function Home() {
             <div className="flex gap-3">
               <motion.button
                 onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-200/80 backdrop-blur-xl px-4 py-3 rounded-xl hover:bg-gray-300/80 transition-all duration-200 font-medium"
+                className="flex-1 bg-gray-200/80 backdrop-blur-xl px-4 py-3 rounded-xl hover:bg-gray-300/80 transition-all duration-200 font-medium text-black"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
