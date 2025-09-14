@@ -1,4 +1,4 @@
-# Healthcare Discharge Planning AI System
+# infinicare: Healthcare Discharge Planning AI System
 
 An intelligent healthcare application that leverages fine-tuned AI models to analyze medical documents and provide evidence-based discharge recommendations for hospital patients.
 
